@@ -33,6 +33,12 @@ class Pager extends BasePager
         if (count($this->getParameters()) > 0) {
             $countQuery->setParameters($this->getParameters());
         }
+        
+        // Fix for PostgreSQL
+        $dqlParts = $countQuery->getQueryBuilder()->getDQLParts();
+        if (count($dqlParts['orderBy']) && !count($dqlParts['groupBy'])) {
+            $countQuery->getQueryBuilder()->resetDQLPart('orderBy');
+        }
 
         $countQuery->select(sprintf('count(DISTINCT %s.%s) as cnt', $countQuery->getRootAlias(), current($this->getCountColumn())));
 
