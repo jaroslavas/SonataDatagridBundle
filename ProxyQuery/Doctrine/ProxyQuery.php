@@ -43,12 +43,6 @@ class ProxyQuery extends BaseProxyQuery
             $this->queryBuilder->orderBy($sortBy, $sortOrder);
         }
 
-        // Fix for PostgreSQL
-        $dqlParts = $this->queryBuilder->getDQLParts();
-        if (count($dqlParts['orderBy']) && !count($dqlParts['groupBy'])) {
-            $this->queryBuilder->resetDQLPart('orderBy');
-        }
-
         return $this->getFixedQueryBuilder($this->queryBuilder)->getQuery()->execute($params, $hydrationMode);
     }
 
@@ -94,6 +88,17 @@ class ProxyQuery extends BaseProxyQuery
             $sortBy .= ' AS __order_by';
             $queryBuilderId->addSelect($sortBy);
         }
+
+        // Fix for PostgreSQL
+        $dqlParts = $queryBuilderId->getDQLParts();
+        if(count($dqlParts['orderBy'])){
+            $i = 0;
+            foreach($dqlParts['orderBy'] as $part){
+                $field = str_replace(array('ASC', 'DESC'), '', $part->getParts()[0]);
+                $queryBuilderId->addSelect($field.' AS __order_by_'.++$i);
+            }
+        }
+
 
         $results    = $queryBuilderId->getQuery()->execute(array(), Query::HYDRATE_ARRAY);
         $idx        = array();
